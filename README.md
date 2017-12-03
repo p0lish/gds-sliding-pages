@@ -1,4 +1,4 @@
-# \<gds-sliding-modal-pages\>
+# \<gds-sliding-pages\>
 
 Simple animated  slidable modals with custom contents
 

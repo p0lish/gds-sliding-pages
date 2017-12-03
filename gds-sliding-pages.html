@@ -1,0 +1,293 @@
+<link rel="import" href="bower_components/polymer/polymer-element.html">
+<dom-module id="gds-sliding-pages">
+    <template>
+        <style>
+            :host {
+                display: block;
+                position: relative;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+            }
+
+            /*noinspection CssInvalidPseudoSelector*/
+            :host ::slotted(*) {
+                box-sizing: border-box;
+            }
+
+            /*noinspection CssInvalidPseudoSelector*/
+            :host ::slotted(div) {
+                display: block;
+                position: absolute;
+                opacity: 1;
+                padding: 8px;
+                top: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 100%;
+                box-shadow: 0 0 6px 2px rgba(0,0,0,0.2);
+                background-color: var(--page-background-color, #fff);
+                z-index: 2;
+            }
+
+            /*noinspection CssInvalidPseudoSelector*/
+            :host ::slotted(.right) {
+                transform: translateX(100%);
+                z-index: 3;
+            }
+
+            /*noinspection CssInvalidPseudoSelector*/
+            :host ::slotted(.left) {
+                transform: translateX(-80px);
+                z-index: 1;
+            }
+
+            /*noinspection CssInvalidPseudoSelector*/
+            :host ::slotted(.out) {
+                display: none !important;
+            }
+        </style>
+        <slot></slot>
+    </template>
+
+    <script>
+        /** @polymerElement */
+        class GdsSlidingPages extends Polymer.Element {
+            static get is() { return 'gds-sliding-pages'; }
+
+            // noinspection JSUnusedGlobalSymbols
+            static get properties() {
+                return {
+                    message: {
+                        type: String,
+                        value: 'gds-sliding-pages'
+                    },
+                    activeIndex: {
+                        type: Number,
+                        value: 0,
+                        notify: true,
+                        reflectToAttribute: true,
+                        observer: '_propertyChanged'
+                    }
+                };
+            }
+            constructor() {
+                super();
+                Polymer.Gestures.addListener(this, 'track', e => this._handleTrack(e));
+            }
+
+            // noinspection JSUnusedGlobalSymbols
+            connectedCallback() {
+                super.connectedCallback();
+
+                this.pages = [];
+
+                this.initialised = false;
+                this.prevPage = null;
+                this.activePage = null;
+
+                this._initPages();
+
+            }
+
+            _handleTrack(event) {
+                if (event.detail.state === "start") {
+                    this.activePageWidth = this.pages[this.activeIndex].ref.getBoundingClientRect().width;
+
+                    // noinspection JSUnusedGlobalSymbols
+                    this.startX = event.detail.x;
+                    return;
+                }
+
+                if (event.detail.state === "end") {
+                    this.startDx = this.prevDx;
+                    return this._handleUp(event);
+                }
+
+
+                this.prevDx = this.startDx;
+                this.startDx = Math.abs(event.detail.dx);
+                this.startTime = new Date().getTime();
+
+                const dx = event.detail.dx;
+                const ratio = (dx / this.activePageWidth) * 80;
+
+                if (dx > 0) {
+                    if (this.activeIndex <= 0) {
+                        return;
+                    }
+                    this.pages[this.activeIndex - 1].ref.classList.remove('out');
+                    this.pages[this.activeIndex - 1].ref.classList.remove('left');
+                    this.pages[this.activeIndex - 1].ref.style.transform = `translateX(${-(80 - ratio)}px)`;
+                    this.pages[this.activeIndex].ref.style.transform = `translateX(${dx}px)`;
+                }
+                if (dx < 0) {
+                    if (this.activeIndex >= this.pages.length - 1) {
+                        return;
+                    }
+                    this.pages[this.activeIndex + 1].ref.classList.remove('out');
+                    this.pages[this.activeIndex + 1].ref.classList.remove('right');
+                    this.pages[this.activeIndex + 1].ref.style.transform = `translateX(${this.activePageWidth - -dx}px)`;
+                    this.pages[this.activeIndex].ref.style.transform = `translateX(${ratio}px)`;
+                }
+            }
+
+            _handleUp(event) {
+
+                this.endTime = new Date().getTime();
+                this.endDx = Math.abs(event.detail.dx);
+
+                const dist = this.startDx - this.endDx;
+                const minSpeed = this.activePageWidth / 300;
+                let time = this.endTime - this.startTime;
+                let speed = dist / time;
+                speed = Math.max(speed, minSpeed);
+
+                const distToCover = Math.abs(this.activePageWidth - Math.abs(event.detail.dx));
+                console.log('distToCover', distToCover);
+                time = (distToCover / Math.abs(speed)) / 1000;
+
+                const transition = `${time}s linear`;
+
+                if (event.detail.dx >= (60)) {
+                    if (this.activeIndex <= 0) {
+                        return;
+                    }
+                    this.activeIndex--;
+                } else if (event.detail.dx > 0) {
+                    this._alterClasses(this.pages[this.activeIndex - 1], transition);
+                }
+
+                // track has gone 60 right, bring in page to the left
+                if (event.detail.dx <= (-60)) {
+                    if (this.activeIndex >= this.pages.length - 1) {
+                        return;
+                    }
+                    this.activeIndex++;
+                } else if (event.detail.dx < 0) {
+                    this._alterClasses(this.pages[this.activeIndex + 1], transition);
+                }
+
+                this._sortPages(transition);
+            }
+
+            _propertyChanged() {
+                if (this.initialised) {
+                    if ((this.activeIndex < 0) || (this.activeIndex >= this.pages.length)) {
+                        return;
+                    }
+                    this.prevPage = this.activePage;
+                    const transition = '0.6s cubic-bezier(0.4, 0.0, 0.2, 1)';
+                    this._sortPages(transition);
+                }
+            }
+
+            _initPages() {
+                const temp = Polymer.dom(this).querySelectorAll(':scope > div');
+                for (let page of temp) {
+                    const obj = {
+                        ref: page,
+                        initialised: true,
+                        transitioning: false,
+                    };
+
+                    page.addEventListener('transitionend', (evt) => {
+                        if (evt.propertyName === "transform") {
+                        this._resetTransition(obj);
+                    }
+                });
+                    this.pages.push(obj);
+                }
+
+                this._sortPages();
+                this._hideHiddenPages();
+
+                this.initialised = true;
+            };
+
+            // noinspection JSMethodCanBeStatic
+            _alterClasses(page, transition) {
+                page.ref.style.transform = '';
+
+                if (transition) {
+                    page.ref.style.transition = `all ${transition}`;
+                    page.transitioning = true;
+                }
+            }
+
+            _resetTransition(page) {
+                page.transitioning = false;
+                page.ref.style.transition = '';
+
+                if (page === this.pages[this.activeIndex]) {
+                    this._hideHiddenPages();
+                }
+            }
+
+            _outRight(page, animate) {
+                this._alterClasses(page, animate);
+
+                page.ref.classList.remove('left');
+                page.ref.classList.add('right');
+            }
+
+            _outLeft(page, animate) {
+                this._alterClasses(page, animate);
+
+                page.ref.classList.remove('right');
+                page.ref.classList.add('left');
+            }
+
+            _in(pageIndex, animate) {
+                this.activeIndex = pageIndex;
+
+                const page = this.pages[pageIndex];
+                this.activePage = page;
+
+                page.ref.classList.remove('out');
+
+                this._alterClasses(page, animate, true);
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                    page.ref.classList.remove('left');
+                    page.ref.classList.remove('right');
+                });
+            });
+
+                page.initialised = true;
+            }
+            _sortPages(animateTime) {
+                if (this.activeIndex < 0 || this.activeIndex >= this.pages.length) {
+                    return;
+                }
+
+                for (let i = 0; i < this.pages.length; i++) {
+                    if (i === this.activeIndex) {
+                        continue;
+                    }
+
+                    const animate = (this.prevPage && (this.pages[i] === this.prevPage)) ? animateTime : false;
+                    if (i < this.activeIndex) {
+                        this._outLeft(this.pages[i], animate);
+                    }
+                    if (i > this.activeIndex) {
+                        this._outRight(this.pages[i], animate);
+                    }
+                }
+                this._in(this.activeIndex, animateTime)
+            }
+
+            _hideHiddenPages() {
+                for (let page of this.pages) {
+                    page.ref.style.transition = '';
+                    if (page !== this.pages[this.activeIndex]) {
+                        page.ref.classList.add('out');
+                    }
+                }
+            }
+        }
+        window.customElements.define(GdsSlidingPages.is, GdsSlidingPages);
+    </script>
+</dom-module>

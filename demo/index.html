@@ -7,7 +7,7 @@
     <title>gds-sliding-modal-pages demo</title>
 
     <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
-
+    <link rel="import" href="../bower_components/iron-a11y-keys/iron-a11y-keys.html">
     <link rel="import" href="../bower_components/iron-demo-helpers/demo-pages-shared-styles.html">
     <link rel="import" href="../bower_components/iron-demo-helpers/demo-snippet.html">
     <link rel="import" href="../bower_components/paper-styles/color.html">
@@ -138,13 +138,18 @@
 
     function prevPage() {
         const currIndex = parseInt(pages.getAttribute('active-index'));
-        pages.setAttribute('active-index', (currIndex - 1));
+        if (0 < currIndex){
+            pages.setAttribute('active-index', (currIndex - 1))
+        }
     }
 
     function nextPage() {
 
         const currIndex = parseInt(pages.getAttribute('active-index'));
-        pages.setAttribute('active-index', (currIndex + 1))
+        if (pages.childElementCount > currIndex + 1){
+            pages.setAttribute('active-index', (currIndex + 1))
+        }
+
     }
 
 </script>

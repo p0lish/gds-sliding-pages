@@ -1,4 +1,4 @@
-<link rel="import" href="bower_components/polymer/polymer-element.html">
+<link rel="import" href="../polymer/polymer-element.html">
 <dom-module id="gds-sliding-pages">
     <template>
         <style>
@@ -92,7 +92,7 @@
             }
 
             _handleTrack(event) {
-                if (event.detail.state === "start") {
+                if (event.detail.state === "START") {
                     this.activePageWidth = this.pages[this.activeIndex].ref.getBoundingClientRect().width;
 
                     // noinspection JSUnusedGlobalSymbols
@@ -100,7 +100,7 @@
                     return;
                 }
 
-                if (event.detail.state === "end") {
+                if (event.detail.state === "END") {
                     this.startDx = this.prevDx;
                     return this._handleUp(event);
                 }

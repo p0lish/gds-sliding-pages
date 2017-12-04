@@ -1,6 +1,6 @@
 # \<gds-sliding-pages\>
 
-Simple animated  slidable modals with custom contents
+Simple animated  slidable pages with custom contents
 
 ## Install the Polymer-CLI
 

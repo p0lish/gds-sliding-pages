@@ -145,7 +145,6 @@
                 speed = Math.max(speed, minSpeed);
 
                 const distToCover = Math.abs(this.activePageWidth - Math.abs(event.detail.dx));
-                console.log('distToCover', distToCover);
                 time = (distToCover / Math.abs(speed)) / 1000;
 
                 const transition = `${time}s linear`;

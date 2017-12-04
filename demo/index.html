@@ -127,7 +127,6 @@
                     </div>
                 </gds-sliding-pages>
             </div>
-
             <button onclick="prevPage()">Previous Page</button>
             <button onclick="nextPage()">Next Page</button>
         </template>
@@ -152,6 +151,14 @@
 
     }
 
+    window.onkeydown = function (e) {
+        let code = e.keyCode ? e.keyCode : e.which;
+        if (code === 37){
+            prevPage()
+        } else if (code === 39){
+            nextPage()
+        }
+    };
 </script>
 </body>
 </html>
